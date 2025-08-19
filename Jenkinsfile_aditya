@@ -106,7 +106,7 @@ pipeline {
         
         stage('Verify the Deployment') {
             steps {
-               withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: ' https://159.203.125.131:6443) {
+               withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: ' https://159.203.125.131:6443') {
                         sh "kubectl get pods -n webapps"
                         sh "kubectl get svc -n webapps"
                 }
@@ -140,9 +140,9 @@ pipeline {
             emailext (
                 subject: "${jobName} - Build ${buildNumber} - ${pipelineStatus.toUpperCase()}",
                 body: body,
-                to: 'jaiswaladi246@gmail.com',
-                from: 'jenkins@example.com',
-                replyTo: 'jenkins@example.com',
+                to: 'knegi2003@gmail.com',
+                from: 'knegi2003@gmail.com',
+                replyTo: 'knegi2003@gmail.com',
                 mimeType: 'text/html',
                 attachmentsPattern: 'trivy-image-report.html'
             )
