@@ -1,79 +1,153 @@
 pipeline {
     agent any
-
     tools {
         jdk 'jdk17'
         maven 'maven3'
     }
 
+    enviornment {
+        SCANNER_HOME= tool 'sonar-scanner'
+    }
+
     stages {
-        stage('Git Checkout') {
+        stage('Cloning Git Repository') {
             steps {
-                echo 'Cloning the repository...'
-                git url: '',
-                branch: 'main',
-                credentialsId: 'git-credentials-id'
+               echo "Checking out the code from Git repository"
+               git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/Karan-Negi-12/Board-Game.git'
             }
         }
-        stage('Hello') {
+        
+        stage('Compile The Code') {
             steps {
-                echo 'Hello World'
+                echo "Compiling the code"
+                sh "mvn compile"
             }
         }
-        stage('Hello') {
+        
+        stage('Test the Code') {
             steps {
-                echo 'Hello World'
+                echo "Running the tests"
+                sh "mvn test"
             }
         }
-        stage('Hello') {
+        
+        stage('File System Scan') {
             steps {
-                echo 'Hello World'
+                echo "Scanning the file system for vulnerabilities"
+                sh "trivy fs --format table -o trivy-fs-report.html ."
             }
         }
-        stage('Hello') {
+        
+        stage('SonarQube Analsyis') {
             steps {
-                echo 'Hello World'
+                withSonarQubeEnv('sonar') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
+                            -Dsonar.java.binaries=. '''
+                }
             }
         }
-        stage('Hello') {
+        
+        stage('Quality Gate') {
             steps {
-                echo 'Hello World'
+                script {
+                  waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                }
             }
         }
-        stage('Hello') {
+        
+        stage('Build') {
             steps {
-                echo 'Hello World'
+               echo "Building the project"
+               sh "mvn package"
             }
         }
-        stage('Hello') {
+        
+        stage('Publish Artifact To Nexus') {
             steps {
-                echo 'Hello World'
+                withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3',       mavenSettingsConfig: '', traceability: true) {
+                    sh "mvn deploy"
+                }
             }
         }
-        stage('Hello') {
+        
+        stage('Build & Tag Docker Image') {
             steps {
-                echo 'Hello World'
+                echo "Building and tagging the Docker image"
+                script {
+                   withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                            sh "docker build -t devopskarannegi/board-game:latest ."
+                    }
+               }
             }
         }
-        stage('Hello') {
+        
+        stage('Docker Image Scan') {
             steps {
-                echo 'Hello World'
+                sh "trivy image --format table -o trivy-image-report.html devopskarannegi/board-game:latest "
             }
         }
-        stage('Hello') {
+        
+        stage('Push Docker Image') {
             steps {
-                echo 'Hello World'
+               script {
+                   withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                            sh "docker push devopskarannegi/board-game:latest"
+                    }
+               }
             }
         }
-        stage('Hello') {
+        stage('Deploy To Kubernetes') {
             steps {
-                echo 'Hello World'
+               withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId:     'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: ' https://159.203.125. 131:6443') {
+                        sh "kubectl apply -f deployment-service.yaml"
+                }
             }
         }
-        stage('Hello') {
+        
+        stage('Verify the Deployment') {
             steps {
-                echo 'Hello World'
+               withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: ' https://159.203.125.131:6443) {
+                        sh "kubectl get pods -n webapps"
+                        sh "kubectl get svc -n webapps"
+                }
             }
+        }
+        
+        
+    }
+    post {
+    always {
+        script {
+            def jobName = env.JOB_NAME
+            def buildNumber = env.BUILD_NUMBER
+            def pipelineStatus = currentBuild.result ?: 'UNKNOWN'
+            def bannerColor = pipelineStatus.toUpperCase() == 'SUCCESS' ? 'green' : 'red'
+
+            def body = """
+                <html>
+                <body>
+                <div style="border: 4px solid ${bannerColor}; padding: 10px;">
+                <h2>${jobName} - Build ${buildNumber}</h2>
+                <div style="background-color: ${bannerColor}; padding: 10px;">
+                <h3 style="color: white;">Pipeline Status: ${pipelineStatus.toUpperCase()}</h3>
+                </div>
+                <p>Check the <a href="${BUILD_URL}">console output</a>.</p>
+                </div>
+                </body>
+                </html>
+            """
+
+            emailext (
+                subject: "${jobName} - Build ${buildNumber} - ${pipelineStatus.toUpperCase()}",
+                body: body,
+                to: 'jaiswaladi246@gmail.com',
+                from: 'jenkins@example.com',
+                replyTo: 'jenkins@example.com',
+                mimeType: 'text/html',
+                attachmentsPattern: 'trivy-image-report.html'
+            )
         }
     }
+}
+
 }
