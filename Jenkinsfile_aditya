@@ -1,30 +1,73 @@
 pipeline {
     agent any
-    
+
     tools {
-        maven 'maven3.6'
         jdk 'jdk17'
+        maven 'maven3'
     }
 
     stages {
-        stage('New-Jenkinsfile') {
+        stage('Git Checkout') {
             steps {
-                echo 'New Jenkinsfile'
+                echo 'Cloning the repository...'
+                git url: '',
+                branch: 'main',
+                credentialsId: 'git-credentials-id'
             }
         }
-        stage('Compile') {
+        stage('Hello') {
             steps {
-             sh 'mvn compile'
+                echo 'Hello World'
             }
         }
-        stage('test') {
+        stage('Hello') {
             steps {
-                sh 'mvn test'
+                echo 'Hello World'
             }
         }
-        stage('Package') {
+        stage('Hello') {
             steps {
-               sh 'mvn package'
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
             }
         }
         stage('Hello') {
